@@ -25,7 +25,9 @@ images = {
     "background": "Wild West.png",
     "target": "Target.png",
     "explosion": "Explosion.png",
-    "characters": "imagepath.png"
+    "characters": "imagepath.png",
+    "bullets": "Bullet.png"
+
 
 }
 image = pg.image.load(images["background"])
@@ -102,6 +104,7 @@ class f():
         DISPLAYSURF.blit(rendered_partial, (x, y))
 
 class Targets:
+    targets = []  # This is a list of all targets in the game.
     def __init__(self, x, y, type):
         """
         Type:
@@ -144,15 +147,76 @@ class Targets:
             self.dx = -self.dx
         if self.y > SCREEN_H or self.y < 0:
             self.dy = -self.dy
+class bullets:
+    bullets = []
+    def __init__(self, x, y):
+        self.x = x
+        self.y = SCREEN_H - 50  # Bullets start at the bottom of the screen
+        self.ygoal = y  # The y-coordinate of the target
+        self.image = pg.image.load(images["bullets"])  # Load the bullet image
+        self.hit = False
+        self.rect = self.image.get_rect(topleft=(self.x, self.y))
+        self.reached = False  # This is to check if the bullet has reached the target.
+    def draw(self):
+        #This is where the bullet is drawn.
         
+        DISPLAYSURF.blit(self.image, (self.x, self.y))
+        
+    def move(self):
+        #This is where the bullet moves.
+        if not self.reached:
+            for i in range(0,5):
+                if self.y == self.ygoal:
+                    self.reached = True
+                    bullets.bullets.remove(self) 
+                    return self.x, self.y # Remove the bullet if it has reached the target
+
+                self.y -= 1 
+
 class Game:
     @staticmethod
     def __init__():  
-        global img      
+        global image      
         #Start the game; initialize new variables, backgrounds, etc. here
-        DISPLAYSURF.fill(pg.Color("white"))
-        DISPLAYSURF.blit(img, (0,0))
+        intro = True
+        clock = pg.time.Clock()
         
+        while intro:
+            
+            DISPLAYSURF.fill(pg.Color("white"))
+            DISPLAYSURF.blit(image, (0,0))
+            f.draw_text("Get Ready!", pg.Color("red"), 100, 100, 40)
+            pg.display.update()
+            clock.tick(60)  # Limit the frame rate to 60 FPS
+            if clock.get_time() > 2000:
+                intro = False
+        while True:
+            
+            DISPLAYSURF.fill(pg.Color("white"))
+            DISPLAYSURF.blit(image, (0,0))
+            events = f.ievents()
+            for e in events:
+                if e.type == QUIT:
+                    pg.quit()
+                    sys.exit()
+                if e.type == MOUSEBUTTONDOWN:
+                    m_x, m_y = f.ievents(4)
+                    if e.button == 1:  # Left mouse button
+                        # Create a new bullet at the mouse position
+                        new_bullet = bullets(m_x, m_y)
+                        bullets.bullets.append(new_bullet)
+                        pg.mixer.Sound(sounds["shoot"]).play()
+            if random.randint(0, 100) <= 5:
+                # Spawn a new target
+                target = Targets(random.randint(0, SCREEN_W), random.randint(0, SCREEN_H), random.randint(0, 4))
+                Targets.targets.append(target)
+            for target in Targets.targets:
+                target.move()
+                target.draw()
+            for bullet in bullets.bullets:
+                bullet.move()
+                bullet.draw()
+
 class Menu:
 
     @staticmethod
@@ -173,9 +237,10 @@ class Menu:
             f.draw_text("Show High Scores", pg.Color ("red"), 100, 270, 40) #second button
             f.draw_text("Quit Playing", pg.Color ("red"), 100, 430, 40) #third button
             
-
+            # Get all events once per loop
+            events = f.ievents()
             #If you want to stop playing the game.
-            for e in f.ievents():
+            for e in events:
                 if e.type == QUIT:
                     pg.quit()
                     sys.exit()
@@ -183,27 +248,28 @@ class Menu:
         
             
             #This tells the computer what to do if you press a certain button, wanting to play the game.
-            for event in f.ievents():
+            for event in events:
                 if event.type == MOUSEBUTTONDOWN:
                     m_x, m_y = f.ievents(4) 
                     print(m_x, m_y, "in click")
                     if  buttons[0].collidepoint(m_x, m_y):
-                        print("Game Start")
-                       
+                        
+                        Game()
                     elif buttons[1].collidepoint(m_x, m_y):
                         print("Your High Scores")
                         
                     elif buttons[2].collidepoint(m_x, m_y):
                         print("Quit Playing")
                         pg.quit()
+                         
                         sys.exit()
 
-           
+
 
 
 
 #Main game loop starts right here.
-
+pg.display.set_caption("Carnival Game")
 Menu.menu()
 
 while True:
